@@ -1,28 +1,31 @@
 import 'dart:developer';
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:timelines/timelines.dart';
-
-const kTileHeight = 50.0;
 
 const completeColor = Color(0xff5e6172);
 const inProgressColor = Color(0xff5ec792);
 const todoColor = Color(0xffd1d2d7);
 
 class ProcessTimelinePage extends StatefulWidget {
+  ProcessTimelinePage(
+      {super.key, required this.processIndex, required this.processes});
+
+  final int processIndex;
+  final List<String> processes;
+
   @override
   _ProcessTimelinePageState createState() => _ProcessTimelinePageState();
 }
 
 class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
-  int _processIndex = 1;
-
-  Color getColor(int index) {
-    if (index == _processIndex) {
+  Color getColor(int index, int processIndex) {
+    if (index == processIndex) {
       return inProgressColor;
-    } else if (index < _processIndex) {
+    } else if (index < processIndex) {
       return completeColor;
     } else {
       return todoColor;
@@ -31,26 +34,29 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
 
   @override
   Widget build(BuildContext context) {
+    int processIndex = widget.processIndex;
+    List<String> processes = widget.processes;
+
     return Timeline.tileBuilder(
+      dragStartBehavior: DragStartBehavior.down,
+      clipBehavior: Clip.none,
       theme: TimelineThemeData(
         direction: Axis.horizontal,
-        connectorTheme: const ConnectorThemeData(
-          space: 10.0,
-          thickness: 5.0,
-        ),
+        connectorTheme:
+            const ConnectorThemeData(space: 18.0, thickness: 5.0, indent: 1),
       ),
       builder: TimelineTileBuilder.connected(
         connectionDirection: ConnectionDirection.before,
         itemExtentBuilder: (_, __) =>
-            MediaQuery.of(context).size.width / _processes.length,
+            (MediaQuery.of(context).size.width - 40) / processes.length,
         contentsBuilder: (context, index) {
           return Padding(
             padding: const EdgeInsets.only(top: 15.0),
             child: Text(
-              _processes[index],
+              processes[index],
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: getColor(index),
+                color: getColor(index, processIndex),
               ),
             ),
           );
@@ -58,7 +64,7 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
         indicatorBuilder: (_, index) {
           var color;
           var child;
-          if (index == _processIndex) {
+          if (index == processIndex) {
             color = inProgressColor;
             child = const Padding(
               padding: EdgeInsets.all(8.0),
@@ -67,7 +73,7 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
                 valueColor: AlwaysStoppedAnimation(Colors.white),
               ),
             );
-          } else if (index < _processIndex) {
+          } else if (index < processIndex) {
             color = completeColor;
             child = const Icon(
               Icons.check,
@@ -78,7 +84,7 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
             color = todoColor;
           }
 
-          if (index <= _processIndex) {
+          if (index <= processIndex) {
             return Stack(
               children: [
                 CustomPaint(
@@ -86,7 +92,7 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
                   painter: _BezierPainter(
                     color: color,
                     drawStart: index > 0,
-                    drawEnd: index < _processIndex,
+                    drawEnd: index < processIndex,
                   ),
                 ),
                 DotIndicator(
@@ -103,7 +109,7 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
                   size: const Size(15.0, 15.0),
                   painter: _BezierPainter(
                     color: color,
-                    drawEnd: index < _processes.length - 1,
+                    drawEnd: index < processes.length - 1,
                   ),
                 ),
                 OutlinedDotIndicator(
@@ -116,9 +122,9 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
         },
         connectorBuilder: (_, index, type) {
           if (index > 0) {
-            if (index == _processIndex) {
-              final prevColor = getColor(index - 1);
-              final color = getColor(index);
+            if (index == processIndex) {
+              final prevColor = getColor(index - 1, processIndex);
+              final color = getColor(index, processIndex);
               List<Color> gradientColors;
               if (type == ConnectorType.start) {
                 gradientColors = [Color.lerp(prevColor, color, 0.5)!, color];
@@ -137,14 +143,14 @@ class _ProcessTimelinePageState extends State<ProcessTimelinePage> {
               );
             } else {
               return SolidLineConnector(
-                color: getColor(index),
+                color: getColor(index, processIndex),
               );
             }
           } else {
             return null;
           }
         },
-        itemCount: _processes.length,
+        itemCount: processes.length,
       ),
     );
   }
@@ -220,9 +226,3 @@ class _BezierPainter extends CustomPainter {
         oldDelegate.drawEnd != drawEnd;
   }
 }
-
-final _processes = [
-  '发起维修',
-  '维修中',
-  '维修结束',
-];
